@@ -1,15 +1,28 @@
+<!-- Initialize Firebase -->
 <!-- The core Firebase JS SDK is always required and must be listed first -->
-<script src="/__/firebase/7.15.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-app.js"></script>
 
 <!-- TODO: Add SDKs for Firebase products that you want to use
      https://firebase.google.com/docs/web/setup#available-libraries -->
 
-<!-- Initialize Firebase -->
-<script src="/__/firebase/init.js"></script>
-<script src="/__/firebase/7.15.0/firebase-auth.js"></script>
-<script src="/__/firebase/7.15.0/firebase-firestore.js"></script>
+<script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyD8DH8ikbr1CS5SGUlieLOwNwqgI4Jsfms",
+        authDomain: "training-game-citys.firebaseapp.com",
+        databaseURL: "https://training-game-citys.firebaseio.com",
+        projectId: "training-game-citys",
+        storageBucket: "training-game-citys.appspot.com",
+        messagingSenderId: "684919999912",
+        appId: "1:684919999912:web:58589153111049b254a19d"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+</script>
+<script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-auth.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-firestore.js"></script>
 <script type="module">
-    import {html, render} from 'https://unpkg.com/lit-html?module';
+    import { html, render } from 'https://unpkg.com/lit-html?module';
 
     async function init() {
         const uid = (await firebase.auth().signInAnonymously()).user.uid;
@@ -37,11 +50,9 @@
                     if (cities[d.i].side === d.side) {
                         cities[d.i].score++;
                     } else {
-
                         if (wins(d.side, cities[d.i].side)) {
                             cities[d.i].score--;
                             if (cities[d.i].score === 0) {
-
 
                                 if (d.time) {
                                     uids[d.uid] = uids[d.uid] || 0;
@@ -57,7 +68,6 @@
                                 cities[d.i].side = d.side;
                                 cities[d.i].time = d.time ? d.time.seconds : +Date
                             }
-                        } else {
                         }
                     }
 
@@ -71,14 +81,16 @@
                 state.scores[c.side] += score * citiesList[i].points;
             }
 
-            state.heroes = Object.entries(uids).map(([uid, score]) => ({score, uid})).sort((a, b) => b.score - a.score);
+            state.heroes = Object.entries(uids).map(([uid, score]) => ({ score, uid })).sort((a, b) => b.score - a.score);
             state.cities = cities;
         }
-        ref.orderBy('time','asc').onSnapshot(snap => {
-          if(!snap.metadata.hasPendingWrites){
-              calcScores(snap.docs.map(d=>d.data()));
-              reRender();
-          }
+
+        ref.orderBy('time', 'asc').onSnapshot(snap => {
+            if (!snap.metadata.hasPendingWrites) {
+                console.log(snap.docs.map(d => d.data()));
+                // calcScores(snap.docs.map(d => d.data()));
+                reRender();
+            }
         });
 
         function chooseSide(uid) {
@@ -87,7 +99,7 @@
 
         const citiesList = [
             {
-                name: 'Moscow',
+                name: 'Berlin',
                 points: 1,
                 icon: '🍹',
             },
@@ -100,45 +112,20 @@
                 name: 'Tokyo',
                 points: 3,
                 icon: '🗼',
-            },
-            {
-                name: 'Minsk',
-                points: 4,
-                icon: '🇧🇾',
-            },
-            {
-                name: 'Rio De Janeiro',
-                points: 5,
-                icon: '🌴',
-            },
-            {
-                name: 'Lagos',
-                points: 6,
-                icon: '🇳🇬',
-            },
-            {
-                name: 'Sri Jayawardenepura Kotte',
-                points: 8,
-                icon: '🇱🇰',
-            },
-            {
-                name: 'Piter',
-                points: 10,
-                icon: '🇱🇰',
-            },
+            }
         ];
 
         const state = {
-            name: 'https://piter-js-game.web.app/',
+            name: 'PiterJS',
             side: chooseSide(uid),
         };
 
-        function makeMove(i){
+        function makeMove(i) {
             ref.add({
-                uid: 'sabaka',
+                uid,
                 time: firebase.firestore.FieldValue.serverTimestamp(),
                 side: state.side,
-                i: 20
+                i
             });
         }
 
@@ -149,7 +136,7 @@
 
     <div style="display: grid; font-size: 30px;grid-row-gap: 20px;grid-column-gap: 20px; grid-template-columns:  30px fit-content(200px) 30px auto">
              ${citiesList.map((c, i) =>
-                    html`
+                html`
                 <div>${c.icon}</div>
                 <div>${c.name}</div>
                 <div style="background: #9cc8dd;border-radius: 50%;text-align:center;width: 40px;height: 40px;">${c.points}</div>
@@ -157,22 +144,9 @@
                   ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
                 </button>
                 `
-                )}
+            )}
              </div>
-
-             <h2>scores</h2>
-                      <div class="score" style="display: grid; grid-template-columns: 100px 100px; font-size: 40px;">
-                         ${
-                             (state.scores || []).map((s, i) => {
-                                 return  html`
-                                 <div>${emojis[i]}</div>
-                                 <div>${s}</div>
-
-                              `
-                             })
-                         }
-                     </div>
-`;
+             <pre>${state.cities}</pre>`;
         }
 
         function reRender() {
@@ -185,4 +159,3 @@
     init();
 
 </script>
-
