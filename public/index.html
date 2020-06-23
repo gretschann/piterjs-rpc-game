@@ -18,11 +18,16 @@
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+    // const firebase = require("firebase");
+    // Required for side-effects
+    // require("firebase/functions");
 </script>
 
 <script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-auth.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-firestore.js"></script>
-
+<!-- client libraries for functions -->
+<!-- <script src="https://www.gstatic.com/firebasejs/7.15.4/firebase.js"></script> -->
+<!-- <script src="https://www.gstatic.com/firebasejs/7.15.4/firebase-functions.js"></script> -->
 <script type="module">
     import { html, render } from 'https://unpkg.com/lit-html?module';
     import { classMap } from 'https://unpkg.com/lit-html/directives/class-map.js';
@@ -138,6 +143,22 @@
             });
         }
 
+        function triggerCloudFunction(e) {
+            var triggerFunction = firebase.functions().httpsCallable('helloWorld');
+            triggerFunction().then(function (result) {
+                // Read result of the Cloud Function.
+                var sanitizedMessage = result.data.text;
+                console.log("Result: ", result, sanitizedMessage)
+            }).catch(function (error) {
+                // Getting the Error details.
+                var code = error.code;
+                var message = error.message;
+                var details = error.details;
+                console.log("Error: ", error, code, message, details)
+                // ...
+            });
+        }
+
         function getHightScore() {
             for (const key in state.cities) {
                 if (state.cities.hasOwnProperty(key)) {
@@ -185,7 +206,17 @@
                 ${buttonTemplate(i)}
                 `
             )}
-            </div>`;
+             
+             <pre>${state.cities}</pre>
+             <div>
+                <button @click="${e => triggerCloudFunction(e)}" style="background: red;font-size: 40px;border: 1px #ddd solid">
+                   Trigger Cloudfunction
+                </button>
+             </div>
+    </div>
+                `;
+
+
         }
 
         function reRender() {
