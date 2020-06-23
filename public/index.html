@@ -29,7 +29,7 @@
 <script src="https://www.gstatic.com/firebasejs/7.15.4/firebase-functions.js"></script>
 <script type="module">
     import { html, render } from 'https://unpkg.com/lit-html?module';
-
+    import { classMap } from 'https://unpkg.com/lit-html/directives/class-map.js';
     async function init() {
         const uid = (await firebase.auth().signInAnonymously()).user.uid;
         const emojis = ['🦠', '💊', '🐶'];
@@ -66,7 +66,7 @@
 
                                     const score = d.time.seconds - cities[d.i].time;
                                     state.scores[d.side] = state.scores[d.side] || 0;
-                                    state.scores[d.side] += score * citiesList[d.i].points;
+                                    state.scores[d.side] += score;
 
                                 }
 
@@ -84,22 +84,24 @@
             for (const [i, c] of Object.entries(cities)) {
                 const score = now - c.time;
                 state.scores[c.side] = state.scores[c.side] || 0;
-                state.scores[c.side] += score * citiesList[i].points;
+                state.scores[c.side] += score;
             }
 
             state.heroes = Object.entries(uids).map(([uid, score]) => ({ score, uid })).sort((a, b) => b.score - a.score);
             state.cities = cities;
         }
 
+        // GET realtime changes 
         ref.orderBy('time', 'asc').onSnapshot(snap => {
             if (!snap.metadata.hasPendingWrites) {
-                console.log(snap.docs.map(d => d.data()));
-                // calcScores(snap.docs.map(d => d.data()));
+                calcScores(snap.docs.map(d => d.data()));
+                getHightScore();
                 reRender();
             }
         });
 
         function chooseSide(uid) {
+            // CONTINUE HERE create better side chouse one by one
             return Math.floor((parseInt(uid.substr(0, 1), 36) / 12));
         }
 
@@ -110,19 +112,24 @@
                 icon: '🍹',
             },
             {
-                name: 'New York',
+                name: 'Munich',
+                points: 3,
+                icon: '🍺',
+            },
+            {
+                name: 'Frankfurt',
                 points: 2,
                 icon: '🗽',
             },
             {
-                name: 'Tokyo',
+                name: 'Düsseldorf',
                 points: 3,
                 icon: '🗼',
             }
         ];
 
         const state = {
-            name: 'PiterJS',
+            name: 'Trainings day',
             side: chooseSide(uid),
         };
 
@@ -150,21 +157,52 @@
                 // ...
             });
         }
+        
+        function getHightScore() {
+            for (const key in state.cities) {
+                if (state.cities.hasOwnProperty(key)) {
+                    const element = state.cities[key];
+                    if (element.score > 5) {
+                        citiesList[key]['done'] = element.side;
+                        console.log(citiesList);
+
+                    }
+                }
+            }
+            return 1;
+        }
+
+        const buttonTemplate = (i) => {
+            if (citiesList[i].done) {
+                return html`
+                <div style="position: relative; display:inherit">
+                    <div style="position:absolute;z-index:9;text-align:center;width:100%">catched</div>
+                    <button style="opacity:0.5; background: white; font-size: 40px; border: 1px #ddd solid">
+                    ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
+                    </button>
+                </div>`
+            } else {
+                return html`
+                <button @click="${e => makeMove(i)}" style="background: white; font-size: 40px; border: 1px #ddd solid">
+                  ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
+                </button>`
+            }
+        }
 
         function renderGame() {
+            let classes = { disabled: true };
             return html`
-    <h1>Hello ${state.name}</h1>
-    <h2>${emojis[state.side]} ${uid}</h2>
-
-    <div style="display: grid; font-size: 30px;grid-row-gap: 20px;grid-column-gap: 20px; grid-template-columns:  30px fit-content(200px) 30px auto">
+            <h1 style="text-align: center">Hello ${state.name}</h1>
+            <h2 style="text-align: center">${emojis[state.side]} ${uid}</h2>
+            <p style="text-align: center">
+                <img src="game-rules.png"/>
+            </p>
+            <div style="display: grid; font-size: 30px;grid-row-gap: 20px;grid-column-gap: 20px; grid-template-columns:  30px fit-content(200px) auto">
              ${citiesList.map((c, i) =>
                 html`
                 <div>${c.icon}</div>
                 <div>${c.name}</div>
-                <div style="background: #9cc8dd;border-radius: 50%;text-align:center;width: 40px;height: 40px;">${c.points}</div>
-                <button @click="${e => makeMove(i)}" style="background: white;font-size: 40px;border: 1px #ddd solid">
-                  ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
-                </button>
+                ${buttonTemplate(i)}
                 `
             )}
              
