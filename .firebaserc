@@ -1,5 +1,14 @@
 {
   "projects": {
-    "default": "training-game-citys"
+    "prod": "training-game-citys"
+  },
+  "targets": {
+    "training-game-citys": {
+      "hosting": {
+        "functions-training-game-citys": [
+          "functions-training-game-citys"
+        ]
+      }
+    }
   }
 }
