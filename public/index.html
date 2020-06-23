@@ -19,15 +19,17 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 </script>
+
 <script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-auth.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-firestore.js"></script>
+
 <script type="module">
     import { html, render } from 'https://unpkg.com/lit-html?module';
     import { classMap } from 'https://unpkg.com/lit-html/directives/class-map.js';
+
     async function init() {
         const uid = (await firebase.auth().signInAnonymously()).user.uid;
         const emojis = ['🦠', '💊', '🐶'];
-
         const ref = firebase.firestore().collection('game');
 
         function wins(a, b) {
