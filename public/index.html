@@ -159,10 +159,8 @@
             for (const key in state.cities) {
                 if (state.cities.hasOwnProperty(key)) {
                     const element = state.cities[key];
-                    if (element.score > 5) {
+                    if (element.score > 30) {
                         citiesList[key]['done'] = element.side;
-                        console.log(citiesList);
-
                     }
                 }
             }
@@ -170,7 +168,7 @@
         }
 
         const buttonTemplate = (i) => {
-            if (citiesList[i].done) {
+            if (citiesList[i].done >= 0) {
                 return html`
                 <div style="position: relative; display:inherit">
                     <div style="position:absolute;z-index:9;text-align:center;width:100%">catched</div>
