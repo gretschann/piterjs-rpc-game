@@ -1,85 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <!-- The core Firebase JS SDK is always required and must be listed first -->
-    <script src="/__/firebase/7.15.0/firebase-app.js"></script>
+<!-- Initialize Firebase -->
+<!-- The core Firebase JS SDK is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/7.15.1/firebase-app.js"></script>
 
-    <!-- TODO: Add SDKs for Firebase products that you want to use
-         https://firebase.google.com/docs/web/setup#available-libraries -->
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
 
-    <!-- Initialize Firebase -->
-    <script src="/__/firebase/init.js"></script>
-    <script src="/__/firebase/7.15.0/firebase-auth.js"></script>
-    <script src="/__/firebase/7.15.0/firebase-firestore.js"></script>
-    <style>
-        svg {
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(#51d700, #e5df00, #e5df00, #ff7000);
-        }
-    </style>
-</head>
-<body>
+<script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyD8DH8ikbr1CS5SGUlieLOwNwqgI4Jsfms",
+        authDomain: "training-game-citys.firebaseapp.com",
+        databaseURL: "https://training-game-citys.firebaseio.com",
+        projectId: "training-game-citys",
+        storageBucket: "training-game-citys.appspot.com",
+        messagingSenderId: "684919999912",
+        appId: "1:684919999912:web:58589153111049b254a19d"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+</script>
 
-</body>
+<script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-auth.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/7.15.0/firebase-firestore.js"></script>
+<!-- client library for functions -->
+<script src="https://www.gstatic.com/firebasejs/7.15.4/firebase-functions.js"></script>
 <script type="module">
-    import {html, render, svg} from 'https://unpkg.com/lit-html?module';
+    import { html, render } from 'https://unpkg.com/lit-html?module';
+    import { classMap } from 'https://unpkg.com/lit-html/directives/class-map.js';
 
     async function init() {
         const uid = (await firebase.auth().signInAnonymously()).user.uid;
-
-        const ref = firebase.firestore().collection('games');
-
-        const state = {
-            side: chooseSide(uid),
-            name: 'Piter',
-            winners: {},
-            cities: {},
-        };
-
         const emojis = ['🦠', '💊', '🐶'];
-
-        function chooseSide(uid) {
-            return Math.floor((parseInt(uid.substr(0, 1), 36) / 12));
-        }
-
-        const citiesList = [
-            {
-                name: 'Moscow',
-                points: 1,
-                icon: '🍹',
-            },
-            {
-                name: 'New York',
-                points: 2,
-                icon: '🗽',
-            },
-            {
-                name: 'Tokyo',
-                points: 3,
-                icon: '🗼',
-            },
-            {
-                name: 'Cairo',
-                points: 4,
-                icon: '🇪🇬',
-            },
-            {
-                name: 'Piter',
-                points: 5,
-                icon: '?',
-            }
-        ];
-
-        function makeMove(i) {
-            ref.add({
-                uid,
-                time: firebase.firestore.FieldValue.serverTimestamp(),
-                i,
-                side: state.side,
-            });
-        }
+        const ref = firebase.firestore().collection('game');
 
         function wins(a, b) {
             return (((a - b + 3) % 3) === 1);
@@ -88,7 +40,7 @@
         function calcScores(docs) {
             const cities = {};
             state.scores = [];
-
+            const uids = {};
 
             for (const d of docs) {
                 if (!cities[d.i]) {
@@ -101,20 +53,17 @@
                     if (cities[d.i].side === d.side) {
                         cities[d.i].score++;
                     } else {
-
                         if (wins(d.side, cities[d.i].side)) {
                             cities[d.i].score--;
                             if (cities[d.i].score === 0) {
 
-
                                 if (d.time) {
+                                    uids[d.uid] = uids[d.uid] || 0;
+                                    uids[d.uid]++;
+
                                     const score = d.time.seconds - cities[d.i].time;
                                     state.scores[d.side] = state.scores[d.side] || 0;
-
-                                    state.scores[d.side] += score * citiesList[d.i].points;
-                                    if(isNaN(state.scores[d.side])){
-                                        debugger;
-                                    }
+                                    state.scores[d.side] += score;
 
                                 }
 
@@ -122,67 +71,155 @@
                                 cities[d.i].side = d.side;
                                 cities[d.i].time = d.time ? d.time.seconds : +Date
                             }
-                        } else {
                         }
                     }
 
                 }
             }
 
+            const now = firebase.firestore.Timestamp.now().seconds
+            for (const [i, c] of Object.entries(cities)) {
+                const score = now - c.time;
+                state.scores[c.side] = state.scores[c.side] || 0;
+                state.scores[c.side] += score;
+            }
+
+            state.heroes = Object.entries(uids).map(([uid, score]) => ({ score, uid })).sort((a, b) => b.score - a.score);
             state.cities = cities;
         }
 
-        ref.orderBy('time', 'asc').onSnapshot(s => {
-
-            const docs = s.docs.map(d => d.data());
-            state.winners = calcScores(docs);
-
-            reRender();
-
+        // GET realtime changes 
+        ref.orderBy('time', 'asc').onSnapshot(snap => {
+            if (!snap.metadata.hasPendingWrites) {
+                calcScores(snap.docs.map(d => d.data()));
+                getHightScore();
+                reRender();
+            }
         });
 
-        function renderGame() {
-            return html`
-        ${emojis[state.side]}
-        ${uid}
+        function chooseSide(uid) {
+            // CONTINUE HERE create better side chouse one by one
+            return Math.floor((parseInt(uid.substr(0, 1), 36) / 12));
+        }
 
-        <div style="display: grid; font-size: 30px;grid-row-gap: 20px;grid-column-gap: 20px; grid-template-columns:  30px fit-content(200px) 30px auto">
-         ${citiesList.map((c, i) =>
-                html`
-            <div>${c.icon}</div>
-            <div>${c.name}</div>
-            <div style="background: #9cc8dd;border-radius: 50%;text-align:center;width: 40px;height: 40px;">${c.points}</div>
-            <button @click="${e => makeMove(i)}" style="background: white;font-size: 40px;border: 1px #ddd solid">
-              ${state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
-            </button>
-            `
-            )}
-         </div>
-
-
-        <h2>scores</h2>
-         <div class="score" style="display: grid; grid-template-columns: 100px 100px; font-size: 40px;">
-            ${
-                (state.scores || []).map((s, i) => {
-                  return  html`
-                    <div>${emojis[i]}</div>
-                    <div>${s}</div>
-
-                 `
-                })
+        const citiesList = [
+            {
+                name: 'Berlin',
+                points: 1,
+                icon: '🍹',
+            },
+            {
+                name: 'Munich',
+                points: 3,
+                icon: '🍺',
+            },
+            {
+                name: 'Frankfurt',
+                points: 2,
+                icon: '🗽',
+            },
+            {
+                name: 'Düsseldorf',
+                points: 3,
+                icon: '🗼',
             }
-        </div>
-            `;
+        ];
+
+        const state = {
+            name: 'Trainings day',
+            side: chooseSide(uid),
+        };
+
+        function makeMove(i) {
+            ref.add({
+                uid,
+                time: firebase.firestore.FieldValue.serverTimestamp(),
+                side: state.side,
+                i
+            });
+        }
+
+        function triggerCloudFunction(e) {
+            var triggerFunction = firebase.functions().httpsCallable('helloWorld');
+            triggerFunction().then(function (result) {
+                // Read result of the Cloud Function.
+                var sanitizedMessage = result.data.text;
+                console.log("Result: ", result, sanitizedMessage)
+            }).catch(function (error) {
+                // Getting the Error details.
+                var code = error.code;
+                var message = error.message;
+                var details = error.details;
+                console.log("Error: ", error, code, message, details)
+                // ...
+            });
+        }
+
+        function getHightScore() {
+            for (const key in state.cities) {
+                if (state.cities.hasOwnProperty(key)) {
+                    const element = state.cities[key];
+                    if (element.score > 30) {
+                        citiesList[key]['done'] = element.side;
+                    }
+                }
+            }
+            return 1;
+        }
+
+        const buttonTemplate = (i) => {
+            if (citiesList[i].done >= 0) {
+                return html`
+                <div style="position: relative; display:inherit">
+                    <div style="position:absolute;z-index:9;text-align:center;width:100%">catched</div>
+                    <button style="opacity:0.5; background: white; font-size: 40px; border: 1px #ddd solid">
+                    ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
+                    </button>
+                </div>`
+            } else {
+                return html`
+                <button @click="${e => makeMove(i)}" style="background: white; font-size: 40px; border: 1px #ddd solid">
+                  ${state.cities && state.cities[i] ? emojis[state.cities[i].side].repeat(state.cities[i].score) : 'Available'}
+                </button>`
+            }
+        }
+
+        function renderGame() {
+            let classes = { disabled: true };
+            return html`
+            <h1 style="text-align: center">Hello ${state.name}</h1>
+            <h2 style="text-align: center">${emojis[state.side]} ${uid}</h2>
+            <p style="text-align: center">
+                <img src="game-rules.png"/>
+            </p>
+            <div style="display: grid; font-size: 30px;grid-row-gap: 20px;grid-column-gap: 20px; grid-template-columns:  30px fit-content(200px) auto">
+             ${citiesList.map((c, i) =>
+                html`
+                <div>${c.icon}</div>
+                <div>${c.name}</div>
+                ${buttonTemplate(i)}
+                `
+            )}
+             
+             <pre>${state.cities}</pre>
+             <div>
+                <button @click="${e => triggerCloudFunction(e)}" style="background: red;font-size: 40px;border: 1px #ddd solid">
+                   Trigger Cloudfunction
+                </button>
+             </div>
+    </div>
+                `;
+
+
         }
 
         function reRender() {
             render(renderGame(), document.body);
         }
 
-        state.name = 'https://delte-me-cf17b.web.app';
         reRender();
     }
 
     init();
+
 </script>
-</html>

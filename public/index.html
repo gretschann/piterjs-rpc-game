@@ -139,22 +139,6 @@
             });
         }
 
-        function triggerCloudFunction(e) {
-            var triggerFunction = firebase.functions().httpsCallable('helloWorld');
-            triggerFunction().then(function (result) {
-                // Read result of the Cloud Function.
-                var sanitizedMessage = result.data.text;
-                console.log("Result: ", result, sanitizedMessage)
-            }).catch(function (error) {
-                // Getting the Error details.
-                var code = error.code;
-                var message = error.message;
-                var details = error.details;
-                console.log("Error: ", error, code, message, details)
-                // ...
-            });
-        }
-
         function getHightScore() {
             for (const key in state.cities) {
                 if (state.cities.hasOwnProperty(key)) {
@@ -200,17 +184,7 @@
                 ${buttonTemplate(i)}
                 `
             )}
-             
-             <pre>${state.cities}</pre>
-             <div>
-                <button @click="${e => triggerCloudFunction(e)}" style="background: red;font-size: 40px;border: 1px #ddd solid">
-                   Trigger Cloudfunction
-                </button>
-             </div>
-    </div>
-                `;
-
-
+            </div>`;
         }
 
         function reRender() {
